@@ -15,9 +15,17 @@ from typing import Any
 from dotenv import load_dotenv
 from fastmcp import Client  # type: ignore[import-untyped]
 from openai import OpenAI
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.table import Table
+from rich.rule import Rule
 
 # .env 파일에서 환경변수 로드
 load_dotenv()
+
+# Rich 콘솔
+console = Console()
 
 # MCP 서버 경로 (같은 디렉터리의 server.py)
 SERVER_PATH = str(os.path.join(os.path.dirname(__file__), "server.py"))
@@ -50,10 +58,12 @@ async def chat_loop():
     # OpenAI 클라이언트 초기화
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    print("=" * 60)
-    print("  HR AI 어시스턴트 (MCP + OpenAI)")
-    print("=" * 60)
-    print("MCP 서버에 연결 중...")
+    console.print(Panel(
+        "HR AI 어시스턴트 (MCP + OpenAI)",
+        style="bold bright_white",
+        border_style="blue",
+    ))
+    console.print("[dim]MCP 서버에 연결 중...[/dim]")
 
     # MCP 서버에 연결 (로컬 Python 스크립트로 실행)
     async with Client(SERVER_PATH) as mcp_client:
@@ -61,13 +71,22 @@ async def chat_loop():
         mcp_tools = await mcp_client.list_tools()
         openai_tools = mcp_tools_to_openai_tools(mcp_tools)
 
-        print(f"연결 완료! 사용 가능한 도구 {len(mcp_tools)}개:")
+        console.print(f"[green]연결 완료![/green] 사용 가능한 도구 {len(mcp_tools)}개:")
+
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("도구명", style="cyan")
+        table.add_column("설명")
         for tool in mcp_tools:
             desc_first_line = (tool.description or "").split("\n")[0]
-            print(f"  - {tool.name}: {desc_first_line}")
-        print()
-        print("질문을 입력하세요 (종료: quit)")
-        print("-" * 60)
+            table.add_row(tool.name, desc_first_line)
+        console.print(table)
+
+        console.print()
+        console.print(
+            "[dim]예시: '김철수의 남은 연차가 며칠인가요?', "
+            "'재택근무 규정을 알려주세요'[/dim]"
+        )
+        console.print(Rule(style="dim"))
 
         # 대화 기록을 유지합니다
         messages: list[Any] = [
@@ -85,12 +104,14 @@ async def chat_loop():
         while True:
             # 사용자 입력 받기
             try:
-                user_input = input("\n질문> ").strip()
+                user_input = Prompt.ask(
+                    "\n[bold bright_blue]질문[/bold bright_blue]"
+                ).strip()
             except (EOFError, KeyboardInterrupt):
                 break
 
             if not user_input or user_input.lower() in ("quit", "exit", "q"):
-                print("종료합니다.")
+                console.print("[dim]종료합니다.[/dim]")
                 break
 
             # 사용자 메시지를 대화 기록에 추가
@@ -115,7 +136,10 @@ async def chat_loop():
                     tool_name = tool_call.function.name
                     tool_args = json.loads(tool_call.function.arguments)
 
-                    print(f"  [도구 호출] {tool_name}({tool_args})")
+                    console.print(
+                        f"  [dim][도구 호출][/dim] "
+                        f"[cyan]{tool_name}[/cyan]({tool_args})"
+                    )
 
                     # MCP 서버의 도구를 호출하고 결과를 받습니다
                     result = await mcp_client.call_tool(tool_name, tool_args)
@@ -142,7 +166,12 @@ async def chat_loop():
 
             # 최종 응답 출력
             messages.append(assistant_message)
-            print(f"\n답변> {assistant_message.content}")
+            console.print(Panel(
+                assistant_message.content or "(응답 없음)",
+                title="답변",
+                border_style="green",
+                padding=(1, 2),
+            ))
 
 
 if __name__ == "__main__":

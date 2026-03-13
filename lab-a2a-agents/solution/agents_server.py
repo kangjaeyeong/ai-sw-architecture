@@ -15,6 +15,9 @@ import threading
 
 from dotenv import load_dotenv
 from python_a2a import AgentCard, run_server
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 from agents import (
     CostReviewAgent,
@@ -22,6 +25,8 @@ from agents import (
     PerformanceReviewAgent,
     SecurityReviewAgent,
 )
+
+console = Console()
 
 load_dotenv()
 
@@ -62,18 +67,17 @@ def start_agent(config):
         capabilities={"pushNotifications": False, "stateTransitionHistory": False},
     )
     server = config["cls"](card)
-    print(f"  [{config['name']}] http://localhost:{config['port']}")
     run_server(server, host="0.0.0.0", port=config["port"])
 
 
 if __name__ == "__main__":
     mode = "LLM" if os.getenv("OPENAI_API_KEY") else "규칙 기반"
 
-    print("=" * 60)
-    print("  아키텍처 심의위원회(ARB) — 전문가 에이전트 시작")
-    print(f"  분석 모드: {mode}")
-    print("=" * 60)
-    print()
+    console.print(Panel(
+        f"아키텍처 심의위원회(ARB) — 전문가 에이전트\n분석 모드: {mode}",
+        border_style="bright_blue",
+        padding=(1, 2),
+    ))
 
     threads = []
     for cfg in AGENT_CONFIGS:
@@ -81,12 +85,21 @@ if __name__ == "__main__":
         t.start()
         threads.append(t)
 
-    print()
-    print("  모든 에이전트가 실행 중입니다. Ctrl+C로 종료하십시오.")
-    print("=" * 60)
+    agent_table = Table(show_header=True, header_style="bold")
+    agent_table.add_column("에이전트")
+    agent_table.add_column("포트")
+    agent_table.add_column("URL")
+    for cfg in AGENT_CONFIGS:
+        agent_table.add_row(cfg["name"], str(cfg["port"]), f"http://localhost:{cfg['port']}")
+    console.print(agent_table)
+
+    console.print(Panel(
+        "모든 에이전트가 실행 중입니다. Ctrl+C로 종료하십시오.",
+        border_style="green",
+    ))
 
     try:
         for t in threads:
             t.join()
     except KeyboardInterrupt:
-        print("\n에이전트를 종료합니다.")
+        console.print("\n에이전트를 종료합니다.")

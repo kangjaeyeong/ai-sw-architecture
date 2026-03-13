@@ -27,17 +27,22 @@ cp .env.example .env
 
 ## 실행 방법
 
-3개 터미널에서 각 서비스를 실행합니다.
+### 일괄 실행 (권장)
 
 ```bash
-# 터미널 1: 의도 분류 서비스
-uv run python solution/intent_service.py
+uv run python solution/run_all.py
+```
 
-# 터미널 2: RAG 검색 서비스
-uv run python solution/rag_service.py
+3개 서비스가 하나의 프로세스에서 동시에 실행됩니다.
 
-# 터미널 3: 오케스트레이터
-uv run python solution/orchestrator.py
+### 개별 실행
+
+서비스를 각각 따로 띄우려면 3개 터미널에서 실행합니다.
+
+```bash
+uv run python solution/intent_service.py   # 포트 8001
+uv run python solution/rag_service.py      # 포트 8002
+uv run python solution/orchestrator.py     # 포트 8000
 ```
 
 ## 시연
@@ -45,11 +50,17 @@ uv run python solution/orchestrator.py
 ### 데모 스크립트 실행
 
 ```bash
-# 터미널 4: 전체 파이프라인 데모
+# 인터랙티브 모드 (직접 질문 입력)
 uv run python solution/demo.py
+
+# 데모 시나리오 4개 자동 실행
+uv run python solution/demo.py --demo
+
+# 단일 질문
+uv run python solution/demo.py "재택근무 규정이 어떻게 되나요?"
 ```
 
-4개 도메인별 질문을 순차적으로 실행하며, 각 단계(분류 → 검색 → 응답)의 결과를 출력합니다.
+인터랙티브 모드에서는 rich TUI 기반 대화형 인터페이스가 표시되며, 직접 질문을 입력할 수 있습니다. `demo`를 입력하면 데모 시나리오를 실행하고, `quit`으로 종료합니다.
 
 ### 개별 서비스 테스트
 

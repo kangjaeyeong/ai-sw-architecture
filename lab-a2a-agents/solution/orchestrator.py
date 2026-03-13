@@ -23,57 +23,18 @@ from pathlib import Path
 
 import requests
 from python_a2a import A2AClient, Message, MessageRole, TextContent
+from rich.console import Console
+from rich.panel import Panel
+from rich.rule import Rule
+from rich.table import Table
+from rich.tree import Tree
 
-
-# ============================================================
-# 터미널 출력 헬퍼
-# ============================================================
-class Colors:
-    HEADER = "\033[95m"
-    BLUE = "\033[94m"
-    CYAN = "\033[96m"
-    GREEN = "\033[92m"
-    YELLOW = "\033[93m"
-    RED = "\033[91m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-    END = "\033[0m"
-
-
-def print_header(text):
-    print()
-    print(f"{Colors.BOLD}{Colors.HEADER}{'=' * 60}{Colors.END}")
-    print(f"{Colors.BOLD}{Colors.HEADER}  {text}{Colors.END}")
-    print(f"{Colors.BOLD}{Colors.HEADER}{'=' * 60}{Colors.END}")
-
-
-def print_section(text, color=Colors.CYAN):
-    print()
-    print(f"{color}{Colors.BOLD}--- {text} ---{Colors.END}")
-
-
-def print_finding(finding, index):
-    severity = finding["severity"]
-    if severity == "높음":
-        sev_color = Colors.RED
-    elif severity == "중간":
-        sev_color = Colors.YELLOW
-    else:
-        sev_color = Colors.GREEN
-
-    print(f"  {index}. [{sev_color}{Colors.BOLD}{severity}{Colors.END}] "
-          f"{Colors.BOLD}{finding['category']}{Colors.END}")
-    print(f"     발견: {finding['finding']}")
-    print(f"     {Colors.CYAN}권고: {finding['recommendation']}{Colors.END}")
-    print()
+console = Console()
 
 
 # ============================================================
 # 에이전트 동적 발견 (AgentCard 기반)
 # ============================================================
-AGENT_COLORS = [Colors.RED, Colors.BLUE, Colors.YELLOW, Colors.GREEN, Colors.CYAN, Colors.HEADER]
-
-
 def discover_agents(port_start: int = 5001, port_end: int = 5004) -> list[dict]:
     """포트 범위를 스캔하여 A2A AgentCard를 가진 에이전트를 발견합니다.
 
@@ -109,7 +70,7 @@ def load_proposal(filename: str = "design_proposal.json"):
     """설계 제안서를 로드합니다."""
     proposal_path = Path(__file__).parent.parent / "data" / filename
     if not proposal_path.exists():
-        print(f"{Colors.RED}오류: 설계 제안서를 찾을 수 없습니다: {proposal_path}{Colors.END}")
+        console.print(f"[bold red]오류: 설계 제안서를 찾을 수 없습니다: {proposal_path}[/bold red]")
         sys.exit(1)
 
     with open(proposal_path, "r", encoding="utf-8") as f:
@@ -158,7 +119,7 @@ def collect_reviews(proposal, agents):
     proposal_text = json.dumps(proposal, ensure_ascii=False)
     reviews = []
 
-    print(f"\n  {len(agents)}명의 전문가에게 동시에 리뷰를 요청합니다...")
+    console.print(f"\n  {len(agents)}명의 전문가에게 동시에 리뷰를 요청합니다...")
 
     futures = {}
     with ThreadPoolExecutor(max_workers=len(agents)) as executor:
@@ -168,18 +129,25 @@ def collect_reviews(proposal, agents):
 
         for future in as_completed(futures):
             i, agent_info = futures[future]
-            color = AGENT_COLORS[i % len(AGENT_COLORS)]
             result = future.result()
 
             if "review" in result:
                 review = result["review"]
                 reviews.append(review)
-                print(f"  {color}{Colors.BOLD}{agent_info['icon']}{Colors.END} "
-                      f"{agent_info['name']}: "
-                      f"{color}{review['verdict']}{Colors.END} "
-                      f"({result['elapsed']:.1f}초)")
+                verdict = review["verdict"]
+                if verdict == "반려":
+                    verdict_style = "red"
+                elif verdict == "조건부 승인":
+                    verdict_style = "yellow"
+                else:
+                    verdict_style = "green"
+                console.print(
+                    f"  [bold]{agent_info['icon']}[/bold] {agent_info['name']}: "
+                    f"[{verdict_style}]{verdict}[/{verdict_style}] "
+                    f"({result['elapsed']:.1f}초)"
+                )
             else:
-                print(f"  {Colors.RED}{agent_info['icon']} 실패: {result['error']}{Colors.END}")
+                console.print(f"  [red]{agent_info['icon']} 실패: {result['error']}[/red]")
 
     return reviews
 
@@ -267,13 +235,13 @@ def generate_final_report(proposal, reviews, conflicts):
 
     if reject_count >= 2:
         final_verdict = "반려"
-        verdict_color = Colors.RED
+        verdict_style = "red"
     elif reject_count >= 1 or conditional_count >= 3:
         final_verdict = "조건부 승인 (수정 후 재심의)"
-        verdict_color = Colors.YELLOW
+        verdict_style = "yellow"
     else:
         final_verdict = "승인"
-        verdict_color = Colors.GREEN
+        verdict_style = "green"
 
     # 전체 findings 심각도 집계
     all_findings = []
@@ -285,68 +253,87 @@ def generate_final_report(proposal, reviews, conflicts):
     low = sum(1 for f in all_findings if f["severity"] == "낮음")
 
     # ---- 출력 ----
-    print_header("아키텍처 심의위원회(ARB) 종합 보고서")
+    console.print()
+    console.print(Panel(
+        "아키텍처 심의위원회(ARB) 종합 보고서",
+        border_style="bright_blue",
+        padding=(1, 2),
+    ))
 
-    # 제안 개요
-    print_section("1. 심의 대상", Colors.BLUE)
-    print(f"  제목: {proposal['title']}")
-    print(f"  제안 부서: {proposal['proposer']}")
-    print(f"  제안 일자: {proposal['date']}")
-    print(f"  핵심 내용: {proposal['summary']}")
+    # 1. 심의 대상
+    console.print(Rule("[bold]1. 심의 대상[/bold]", style="blue"))
+    console.print(Panel(
+        f"[bold]제목[/bold]: {proposal['title']}\n"
+        f"[bold]제안 부서[/bold]: {proposal['proposer']}\n"
+        f"[bold]제안 일자[/bold]: {proposal['date']}\n"
+        f"[bold]핵심 내용[/bold]: {proposal['summary']}",
+        border_style="blue",
+    ))
 
-    # 에이전트별 판정 요약
-    print_section("2. 전문가별 판정", Colors.BLUE)
-    for i, review in enumerate(reviews):
-        color = AGENT_COLORS[i % len(AGENT_COLORS)]
+    # 2. 전문가별 판정
+    console.print(Rule("[bold]2. 전문가별 판정[/bold]", style="blue"))
+    verdict_table = Table(show_header=True, header_style="bold")
+    verdict_table.add_column("에이전트", style="bold")
+    verdict_table.add_column("판정")
+    verdict_table.add_column("요약")
+
+    for review in reviews:
         v = review["verdict"]
         if v == "반려":
-            v_color = Colors.RED
+            v_display = f"[red]{v}[/red]"
         elif v == "조건부 승인":
-            v_color = Colors.YELLOW
+            v_display = f"[yellow]{v}[/yellow]"
         else:
-            v_color = Colors.GREEN
+            v_display = f"[green]{v}[/green]"
+        verdict_table.add_row(review["agent"], v_display, review["summary"])
 
-        print(f"  {color}{Colors.BOLD}{review['agent']}{Colors.END}: "
-              f"{v_color}{Colors.BOLD}{v}{Colors.END}")
-        print(f"    {review['summary']}")
-        print()
+    console.print(verdict_table)
 
-    # 주요 발견 사항 (높음만)
-    print_section("3. 높은 심각도 발견 사항", Colors.RED)
-    idx = 1
+    # 3. 높은 심각도 발견 사항
+    console.print(Rule("[bold]3. 높은 심각도 발견 사항[/bold]", style="red"))
+    tree = Tree("[bold red]높은 심각도[/bold red]")
     for review in reviews:
-        for finding in review["findings"]:
-            if finding["severity"] == "높음":
-                print(f"  {Colors.BOLD}{review['agent']}{Colors.END}")
-                print_finding(finding, idx)
-                idx += 1
+        high_findings = [f for f in review["findings"] if f["severity"] == "높음"]
+        if high_findings:
+            agent_branch = tree.add(f"[bold]{review['agent']}[/bold]")
+            for finding in high_findings:
+                node = agent_branch.add(f"[bold red][높음][/bold red] [bold]{finding['category']}[/bold]")
+                node.add(f"발견: {finding['finding']}")
+                node.add(f"[cyan]권고: {finding['recommendation']}[/cyan]")
+    console.print(tree)
 
-    # 관점 충돌 분석
+    # 4. 관점 충돌 분석
     if conflicts:
-        print_section("4. 관점 충돌 분석", Colors.YELLOW)
+        console.print(Rule("[bold]4. 관점 충돌 분석[/bold]", style="yellow"))
         for i, conflict in enumerate(conflicts, 1):
-            print(f"  {Colors.BOLD}{i}. [{conflict['type']}]{Colors.END}")
-            print(f"     충돌: {conflict['description']}")
-            print(f"     {Colors.CYAN}해결 방안: {conflict['resolution']}{Colors.END}")
-            print()
+            console.print(Panel(
+                f"[bold]충돌[/bold]: {conflict['description']}\n"
+                f"[cyan][bold]해결 방안[/bold]: {conflict['resolution']}[/cyan]",
+                title=f"{i}. {conflict['type']}",
+                border_style="yellow",
+            ))
 
-    # 통계
-    print_section("5. 검토 통계", Colors.BLUE)
-    print(f"  총 발견 사항: {len(all_findings)}건")
-    print(f"    {Colors.RED}높음: {high}건{Colors.END}  "
-          f"{Colors.YELLOW}중간: {medium}건{Colors.END}  "
-          f"{Colors.GREEN}낮음: {low}건{Colors.END}")
-    print(f"  관점 충돌: {len(conflicts)}건")
+    # 5. 검토 통계
+    console.print(Rule("[bold]5. 검토 통계[/bold]", style="blue"))
+    console.print(f"  총 발견 사항: {len(all_findings)}건")
+    console.print(
+        f"    [red]높음: {high}건[/red]  "
+        f"[yellow]중간: {medium}건[/yellow]  "
+        f"[green]낮음: {low}건[/green]"
+    )
+    console.print(f"  관점 충돌: {len(conflicts)}건")
 
     # 최종 판정
-    print()
-    print(f"{Colors.BOLD}{'=' * 60}{Colors.END}")
-    print(f"{Colors.BOLD}  최종 판정: {verdict_color}{final_verdict}{Colors.END}")
-    print(f"{Colors.BOLD}{'=' * 60}{Colors.END}")
+    console.print()
+    console.print(Panel(
+        f"[bold {verdict_style}]최종 판정: {final_verdict}[/bold {verdict_style}]",
+        border_style=verdict_style,
+        padding=(1, 2),
+    ))
 
     # 선행 조건 (조건부 승인인 경우)
     if "조건부" in final_verdict or final_verdict == "반려":
-        print_section("6. 재심의 선행 조건", Colors.CYAN)
+        console.print(Rule("[bold]6. 재심의 선행 조건[/bold]", style="cyan"))
         conditions = []
         for review in reviews:
             for finding in review["findings"]:
@@ -356,12 +343,12 @@ def generate_final_report(proposal, reviews, conflicts):
                     )
 
         for i, cond in enumerate(conditions, 1):
-            print(f"  {i}. {cond}")
+            console.print(f"  {i}. {cond}")
 
-        print()
-        print(f"  {Colors.BOLD}위 조건을 충족한 후 재심의를 요청하십시오.{Colors.END}")
+        console.print()
+        console.print("  [bold]위 조건을 충족한 후 재심의를 요청하십시오.[/bold]")
 
-    print()
+    console.print()
 
 
 # ============================================================
@@ -386,46 +373,54 @@ def main():
     port_start, port_end = (int(p) for p in args.ports.split("-"))
 
     # 1. 설계 제안서 로드
-    print_header("아키텍처 심의위원회(ARB) 시작")
-    print(f"\n  설계 제안서를 로드합니다... ({args.proposal})")
+    console.print(Panel(
+        "아키텍처 심의위원회(ARB) 시작",
+        border_style="bright_blue",
+        padding=(1, 2),
+    ))
+    console.print(f"\n  설계 제안서를 로드합니다... ({args.proposal})")
     proposal = load_proposal(args.proposal)
-    print(f"  제안: {Colors.BOLD}{proposal['title']}{Colors.END}")
-    print(f"  예산: {proposal['proposed_changes']['budget']}")
-    print(f"  기간: {proposal['proposed_changes']['timeline']}")
+    console.print(f"  제안: [bold]{proposal['title']}[/bold]")
+    console.print(f"  예산: {proposal['proposed_changes']['budget']}")
+    console.print(f"  기간: {proposal['proposed_changes']['timeline']}")
 
     # 2. 에이전트 동적 발견 (AgentCard 기반)
-    print_section("에이전트 탐색 (AgentCard Discovery)", Colors.CYAN)
-    print(f"  포트 {port_start}~{port_end} 범위에서 A2A 에이전트를 탐색합니다...")
+    console.print(Rule("[bold]에이전트 탐색 (AgentCard Discovery)[/bold]", style="cyan"))
+    console.print(f"  포트 {port_start}~{port_end} 범위에서 A2A 에이전트를 탐색합니다...")
 
     agents = discover_agents(port_start, port_end)
 
     if not agents:
-        print(f"\n{Colors.RED}오류: 발견된 에이전트가 없습니다. "
-              f"agents_server.py가 실행 중인지 확인하십시오.{Colors.END}")
+        console.print(
+            "\n[bold red]오류: 발견된 에이전트가 없습니다. "
+            "agents_server.py가 실행 중인지 확인하십시오.[/bold red]"
+        )
         sys.exit(1)
 
-    for i, agent in enumerate(agents):
-        color = AGENT_COLORS[i % len(AGENT_COLORS)]
-        print(f"  {color}  발견: {agent['name']}{Colors.END} ({agent['url']})")
-        if agent["description"]:
-            print(f"  {Colors.BOLD}        {agent['description']}{Colors.END}")
+    agent_table = Table(show_header=True, header_style="bold")
+    agent_table.add_column("에이전트")
+    agent_table.add_column("URL")
+    agent_table.add_column("설명")
+    for agent in agents:
+        agent_table.add_row(agent["name"], agent["url"], agent["description"])
+    console.print(agent_table)
 
-    print(f"\n  {Colors.GREEN}{len(agents)}개의 전문가 에이전트를 발견했습니다.{Colors.END}")
+    console.print(f"\n  [green]{len(agents)}개의 전문가 에이전트를 발견했습니다.[/green]")
 
     # 3. 전문가 에이전트에게 병렬 리뷰 요청
-    print_section("전문가 리뷰 수집 (병렬)", Colors.CYAN)
+    console.print(Rule("[bold]전문가 리뷰 수집 (병렬)[/bold]", style="cyan"))
     reviews = collect_reviews(proposal, agents)
 
     if not reviews:
-        print(f"\n{Colors.RED}오류: 수집된 리뷰가 없습니다.{Colors.END}")
+        console.print("\n[bold red]오류: 수집된 리뷰가 없습니다.[/bold red]")
         sys.exit(1)
 
-    print(f"\n  {Colors.GREEN}{len(reviews)}명의 전문가로부터 리뷰를 수집했습니다.{Colors.END}")
+    console.print(f"\n  [green]{len(reviews)}명의 전문가로부터 리뷰를 수집했습니다.[/green]")
 
     # 3. 관점 충돌 분석
-    print_section("관점 충돌 분석 중...", Colors.YELLOW)
+    console.print(Rule("[bold]관점 충돌 분석 중...[/bold]", style="yellow"))
     conflicts = analyze_conflicts(reviews)
-    print(f"  {len(conflicts)}건의 관점 충돌을 식별했습니다.")
+    console.print(f"  {len(conflicts)}건의 관점 충돌을 식별했습니다.")
 
     # 4. 종합 보고서 생성
     generate_final_report(proposal, reviews, conflicts)

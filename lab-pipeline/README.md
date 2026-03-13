@@ -86,7 +86,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 1. 실습 디렉터리로 이동합니다.
 
 ```bash
-cd labs/lab3-pipeline
+cd labs/lab-pipeline
 ```
 
 2. 의존성을 설치합니다.
@@ -113,7 +113,14 @@ uv run python solution/simple_llm_call.py
 ### 메인 파이프라인
 
 ```bash
+# 인터랙티브 모드 (직접 질문 입력)
 uv run python solution/pipeline.py
+
+# 데모 시나리오 5개 자동 실행
+uv run python solution/pipeline.py --demo
+
+# 단일 질문
+uv run python solution/pipeline.py "연차 잔여일이 얼마나 남았나요?"
 ```
 
 ### 평가
@@ -259,14 +266,14 @@ uv run python solution/eval.py
 ## 파일 구조
 
 ```
-lab3-pipeline/
+lab-pipeline/
 ├── README.md                           ← 이 파일
 ├── .env.example                        ← 환경변수 템플릿
 ├── pyproject.toml                      ← 프로젝트 설정 및 의존성
 ├── data/
 │   └── knowledge_base.json             ← 사내 문서 데이터 (7건)
 └── solution/
-    ├── pipeline.py                     ← 7단계 Compound AI 파이프라인
+    ├── pipeline.py                     ← 7단계 Compound AI 파이프라인 (rich TUI)
     ├── simple_llm_call.py              ← 단순 LLM 호출 비교 예제
     └── eval.py                         ← 5가지 평가 패턴
 ```
