@@ -40,8 +40,9 @@ def search_hr_policy(query: str) -> str:
     results = []
     for policy in policies:
         # 제목, 카테고리, 내용에서 키워드를 검색합니다
-        searchable = f"{policy['title']} {policy['category']} {policy['content']}"
-        if query.lower() in searchable.lower():
+        searchable = f"{policy['title']} {policy['category']} {policy['content']}".lower()
+        keywords = query.lower().split()
+        if any(kw in searchable for kw in keywords):
             results.append(
                 f"[{policy['id']}] {policy['title']}\n{policy['content']}"
             )

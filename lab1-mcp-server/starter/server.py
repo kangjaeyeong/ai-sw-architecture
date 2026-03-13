@@ -38,7 +38,7 @@ def search_hr_policy(query: str) -> str:
     """
     # TODO: 여기에 구현하세요
     # 힌트 1: load_json("hr_policies.json")으로 규정 데이터를 불러옵니다
-    # 힌트 2: 각 규정의 title, category, content에서 query 키워드를 검색합니다
+    # 힌트 2: query.split()으로 키워드를 분리하고, 각 규정의 title, category, content에서 검색합니다
     # 힌트 3: 매칭되는 규정이 없으면 안내 메시지를 반환합니다
     raise NotImplementedError("TODO: 이 함수를 구현하십시오")
 

@@ -125,7 +125,7 @@ uv run python solution/server.py
 FastMCP에 내장된 Inspector를 사용하여 브라우저에서 테스트할 수 있습니다.
 
 ```bash
-uv run fastmcp dev solution/server.py
+uv run fastmcp dev inspector solution/server.py
 ```
 
 Inspector가 실행되면 브라우저에서 다음을 시도하십시오.
@@ -231,7 +231,7 @@ MCP는 **AI 모델이 도구 설명을 읽고 스스로 호출을 결정**하는
 
 **2단계: Inspector로 도구 확인 (3분)**
 ```bash
-uv run fastmcp dev solution/server.py
+uv run fastmcp dev inspector solution/server.py
 ```
 - Tools 탭에서 3개 도구를 보여주고, 각각 실행
 - "AI 없이도 도구가 정상 동작하는지 먼저 확인합니다"
