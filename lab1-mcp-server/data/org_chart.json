@@ -1,0 +1,33 @@
+{
+  "개발팀": {
+    "department_id": "DEV",
+    "head": "정예진",
+    "head_position": "개발 팀장",
+    "members": [
+      {"name": "김민수", "position": "시니어 개발자", "role": "백엔드 리드"},
+      {"name": "최하늘", "position": "주니어 개발자", "role": "프론트엔드"},
+      {"name": "한지우", "position": "시니어 개발자", "role": "인프라 담당"}
+    ],
+    "sub_teams": ["백엔드", "프론트엔드", "인프라"]
+  },
+  "인사팀": {
+    "department_id": "HR",
+    "head": "이서연",
+    "head_position": "HR 매니저",
+    "members": [
+      {"name": "윤소희", "position": "HR 담당자", "role": "채용 담당"},
+      {"name": "오재현", "position": "HR 담당자", "role": "교육훈련 담당"}
+    ],
+    "sub_teams": ["채용", "교육훈련", "급여"]
+  },
+  "기획팀": {
+    "department_id": "PLN",
+    "head": "박준혁",
+    "head_position": "기획 팀장",
+    "members": [
+      {"name": "신다은", "position": "서비스 기획자", "role": "신규 서비스 기획"},
+      {"name": "강태현", "position": "데이터 분석가", "role": "사업 분석"}
+    ],
+    "sub_teams": ["서비스기획", "사업분석"]
+  }
+}

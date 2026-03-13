@@ -1,0 +1,52 @@
+[
+  {
+    "employee_id": "EMP-001",
+    "name": "김민수",
+    "department": "개발팀",
+    "position": "시니어 개발자",
+    "hire_date": "2021-03-15",
+    "total_leave": 17,
+    "used_leave": 8,
+    "remaining_leave": 9
+  },
+  {
+    "employee_id": "EMP-002",
+    "name": "이서연",
+    "department": "인사팀",
+    "position": "HR 매니저",
+    "hire_date": "2019-07-01",
+    "total_leave": 19,
+    "used_leave": 12,
+    "remaining_leave": 7
+  },
+  {
+    "employee_id": "EMP-003",
+    "name": "박준혁",
+    "department": "기획팀",
+    "position": "기획 팀장",
+    "hire_date": "2018-01-10",
+    "total_leave": 20,
+    "used_leave": 5,
+    "remaining_leave": 15
+  },
+  {
+    "employee_id": "EMP-004",
+    "name": "최하늘",
+    "department": "개발팀",
+    "position": "주니어 개발자",
+    "hire_date": "2025-09-01",
+    "total_leave": 6,
+    "used_leave": 2,
+    "remaining_leave": 4
+  },
+  {
+    "employee_id": "EMP-005",
+    "name": "정예진",
+    "department": "개발팀",
+    "position": "개발 팀장",
+    "hire_date": "2017-04-20",
+    "total_leave": 21,
+    "used_leave": 14,
+    "remaining_leave": 7
+  }
+]

@@ -1,0 +1,6 @@
+[project]
+name = "lab1-mcp-server"
+version = "0.1.0"
+description = "MCP HR 도구 서버 실습"
+requires-python = ">=3.11"
+dependencies = ["fastmcp>=2.0"]

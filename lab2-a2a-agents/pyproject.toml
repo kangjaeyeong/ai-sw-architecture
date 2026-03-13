@@ -1,0 +1,9 @@
+[project]
+name = "lab2-a2a-agents"
+version = "0.1.0"
+description = "A2A 프로토콜 기반 아키텍처 심의위원회 멀티에이전트 실습"
+requires-python = ">=3.11"
+dependencies = [
+    "python-a2a>=0.5.0",
+    "openai>=1.0",
+]
