@@ -57,7 +57,7 @@ def simple_llm_call(query: str) -> str:
         from openai import OpenAI
         client = OpenAI()
         response = client.chat.completions.create(
-            model="gpt-4o",  # 항상 고성능 모델 사용 (비용 낭비)
+            model="gpt-5",  # 항상 고성능 모델 사용 (비용 낭비)
             messages=[{"role": "user", "content": query}],
             max_tokens=300,
         )
@@ -103,7 +103,7 @@ def main() -> None:
         total_calls += 1
 
         print(f"  입력 검증:  {Colors.RED}없음 (프롬프트 인젝션 무방비){Colors.RESET}")
-        print(f"  모델 선택:  {Colors.RED}항상 gpt-4o (비용 낭비){Colors.RESET}")
+        print(f"  모델 선택:  {Colors.RED}항상 gpt-5 (비용 낭비){Colors.RESET}")
         print(f"  문서 검색:  {Colors.RED}없음 (환각 위험){Colors.RESET}")
         print(f"  출력 검증:  {Colors.RED}없음 (민감정보 노출 위험){Colors.RESET}")
         print(f"  캐싱:       {Colors.RED}없음 (동일 질문도 재호출){Colors.RESET}")

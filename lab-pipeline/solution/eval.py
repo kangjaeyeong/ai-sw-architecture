@@ -127,13 +127,13 @@ def eval_router(suite: EvalSuite) -> None:
     router = Router()
 
     test_cases = [
-        ("연차 잔여일이 몇 일인가요?", "HR", "gpt-4o-mini"),
-        ("재택근무 신청 방법을 알려주세요", "HR", "gpt-4o-mini"),
-        ("복리후생 항목이 뭐가 있나요?", "HR", "gpt-4o-mini"),
-        ("서버 배포 절차를 알려주세요", "IT", "gpt-4o"),
-        ("장애 대응 매뉴얼은 어디 있나요?", "IT", "gpt-4o"),
-        ("보안 정책에서 MFA 설정은 필수인가요?", "IT", "gpt-4o"),
-        ("회의실 예약은 어떻게 하나요?", "일반", "gpt-4o-mini"),
+        ("연차 잔여일이 몇 일인가요?", "HR", "gpt-5-mini"),
+        ("재택근무 신청 방법을 알려주세요", "HR", "gpt-5-mini"),
+        ("복리후생 항목이 뭐가 있나요?", "HR", "gpt-5-mini"),
+        ("서버 배포 절차를 알려주세요", "IT", "gpt-5"),
+        ("장애 대응 매뉴얼은 어디 있나요?", "IT", "gpt-5"),
+        ("보안 정책에서 MFA 설정은 필수인가요?", "IT", "gpt-5"),
+        ("회의실 예약은 어떻게 하나요?", "일반", "gpt-5-mini"),
     ]
 
     for query, expected_cat, expected_model in test_cases:
@@ -234,7 +234,7 @@ def eval_semantic_cache(suite: EvalSuite) -> None:
     )
 
     # 캐시에 저장
-    cache.store("연차 잔여일이 얼마나 남았나요?", "캐시된 응답입니다.", "HR", "gpt-4o-mini")
+    cache.store("연차 잔여일이 얼마나 남았나요?", "캐시된 응답입니다.", "HR", "gpt-5-mini")
 
     # 동일 질문 적중
     ctx2 = PipelineContext(query="연차 잔여일이 얼마나 남았나요?", is_safe_input=True)
@@ -315,7 +315,7 @@ def eval_golden_tests(suite: EvalSuite) -> None:
             "expect": {
                 "blocked": False,
                 "category": "HR",
-                "model": "gpt-4o-mini",
+                "model": "gpt-5-mini",
                 "has_docs": True,
                 "top_doc": "DOC-001",
             },
@@ -325,7 +325,7 @@ def eval_golden_tests(suite: EvalSuite) -> None:
             "expect": {
                 "blocked": False,
                 "category": "IT",
-                "model": "gpt-4o",
+                "model": "gpt-5",
                 "has_docs": True,
                 "top_doc": "DOC-004",
             },
@@ -502,7 +502,7 @@ JSON 형식으로 응답하십시오:
 
         try:
             judge_response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=200,
                 temperature=0.0,

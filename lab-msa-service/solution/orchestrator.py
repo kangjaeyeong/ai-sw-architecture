@@ -91,7 +91,7 @@ def generate_answer(message: str, context_docs: list[dict]) -> str:
     )
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {
@@ -136,7 +136,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
     answer = generate_answer(request.message, context_docs)
     pipeline.append(PipelineStep(
         step="LLM 응답 생성",
-        service="OpenAI gpt-4o-mini",
+        service="OpenAI gpt-5-mini",
         result={"tokens_used": len(answer)},
     ))
 

@@ -82,7 +82,7 @@ def demo_single_question(question: str):
         elif step["step"] == "LLM 응답 생성":
             console.print(
                 Panel(
-                    "모델: OpenAI gpt-4o-mini",
+                    "모델: OpenAI gpt-5-mini",
                     title=f"[bold]LLM 응답 생성[/bold] ({step['service']})",
                     border_style="green",
                 )
