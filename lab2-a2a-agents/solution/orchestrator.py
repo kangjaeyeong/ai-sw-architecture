@@ -80,9 +80,9 @@ AGENT_COLORS = [Colors.RED, Colors.BLUE, Colors.YELLOW, Colors.GREEN]
 # ============================================================
 # 설계 제안서 로드
 # ============================================================
-def load_proposal():
-    """data/design_proposal.json 파일을 로드합니다."""
-    proposal_path = Path(__file__).parent.parent / "data" / "design_proposal.json"
+def load_proposal(filename: str = "design_proposal.json"):
+    """설계 제안서를 로드합니다."""
+    proposal_path = Path(__file__).parent.parent / "data" / filename
     if not proposal_path.exists():
         print(f"{Colors.RED}오류: 설계 제안서를 찾을 수 없습니다: {proposal_path}{Colors.END}")
         sys.exit(1)
@@ -326,20 +326,16 @@ def main():
         description="아키텍처 심의위원회(ARB) 오케스트레이터"
     )
     parser.add_argument(
-        "--use-llm",
-        action="store_true",
-        help="LLM 기반 분석을 사용합니다 (OPENAI_API_KEY 필요)",
+        "--proposal",
+        default="design_proposal.json",
+        help="제안서 파일명 (기본: design_proposal.json, v2: design_proposal_v2.json)",
     )
     args = parser.parse_args()
 
-    if args.use_llm:
-        print(f"{Colors.YELLOW}[정보] LLM 모드가 선택되었으나, "
-              f"이 실습에서는 규칙 기반 분석을 사용합니다.{Colors.END}")
-
     # 1. 설계 제안서 로드
     print_header("아키텍처 심의위원회(ARB) 시작")
-    print("\n  설계 제안서를 로드합니다...")
-    proposal = load_proposal()
+    print(f"\n  설계 제안서를 로드합니다... ({args.proposal})")
+    proposal = load_proposal(args.proposal)
     print(f"  제안: {Colors.BOLD}{proposal['title']}{Colors.END}")
     print(f"  예산: {proposal['proposed_changes']['budget']}")
     print(f"  기간: {proposal['proposed_changes']['timeline']}")

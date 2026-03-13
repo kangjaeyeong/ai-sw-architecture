@@ -12,6 +12,7 @@
 - A2A 프로토콜의 핵심 개념: AgentCard, Task, Message, Artifact
 - 멀티에이전트 시스템에서의 관점 충돌과 해결
 - 오케스트레이터 패턴을 통한 에이전트 협업
+- LLM 기반 분석과 규칙 기반 폴백의 하이브리드 구조
 - 전통적 REST API 방식과 A2A 프로토콜의 구조적 차이
 
 ---
@@ -126,15 +127,26 @@ uv run python solution/traditional_multi_service.py
 - 오케스트레이터가 순차적으로 각 에이전트에게 리뷰를 요청합니다.
 - 에이전트 간 관점 충돌을 분석하여 최종 판정을 내립니다.
 
-### 시나리오 상세
+### 에이전트 분석 모드
 
-1. **설계 제안서 입력**: 사내 레거시 시스템(Java 8, Oracle, WebLogic)을 AWS EKS로 전환하는 제안
-2. **전문가별 독립 분석**: 각 에이전트가 자신의 관점에서 제안서를 리뷰
-3. **관점 충돌 식별**: 오케스트레이터가 에이전트 간 상충하는 의견 3건을 탐지
-   - 성능(오토스케일링 긍정) vs 비용(TCO 증가 우려)
-   - 보안(고급 보안 체계 요구) vs 운영(팀 역량 부재)
-   - 제안서(인력 60% 감축 기대) vs 운영(초기 인력 증가 필요)
-4. **종합 판정**: 반려 2건(보안, 운영) 이상으로 최종 반려, 재심의 조건 제시
+각 에이전트는 **하이브리드 분석 구조**를 채택하고 있습니다.
+
+| 모드 | 조건 | 특징 |
+|------|------|------|
+| **LLM 기반** | `OPENAI_API_KEY` 환경 변수가 설정된 경우 | 에이전트별 시스템 프롬프트로 LLM에게 분석을 요청합니다. 다양한 제안서에 유연하게 대응할 수 있습니다. |
+| **규칙 기반** | API 키가 없는 경우 (기본값) | 제안서의 특정 키 존재 여부로 판정합니다. API 키 없이도 즉시 실행 가능합니다. |
+| **자동 폴백** | LLM 호출 실패 시 | LLM 모드에서 오류가 발생하면 규칙 기반으로 자동 전환됩니다. |
+
+### 데모 시나리오: 반려에서 승인까지
+
+이 실습에는 2개의 설계 제안서가 포함되어 있습니다.
+
+| 제안서 | 파일 | 결과 | 설명 |
+|--------|------|------|------|
+| **v1 (원안)** | `design_proposal.json` | **반려** | 보안 대책, 비용 분석, 운영 교육 계획이 부재합니다. |
+| **v2 (수정안)** | `design_proposal_v2.json` | **승인** | v1의 지적 사항을 모두 반영하여 보안, 비용, 운영 계획을 보강하였습니다. |
+
+v1에서 반려를 받은 후 v2를 수정하여 승인을 받는 **현실적인 심의 사이클**을 체험할 수 있습니다.
 
 ---
 
@@ -153,12 +165,12 @@ uv sync
 
 ```bash
 cp .env.example .env
-# 필요한 경우 OPENAI_API_KEY를 설정하십시오.
+# LLM 모드를 사용하려면 OPENAI_API_KEY를 설정하십시오.
 ```
 
 ---
 
-## 실습 순서 (20분)
+## 실습 순서 (25분)
 
 ### Step 1: 설계 제안서 확인 (2분)
 
@@ -206,7 +218,7 @@ if proposal.get("proposed_changes", {}).get("target_cloud") == "AWS":
 uv run python starter/agents.py
 
 # 또는 완성된 solution 코드 실행
-uv run python solution/agents.py
+uv run python solution/agents_server.py
 ```
 
 실행하면 4개의 에이전트가 각각 port 5001 ~ 5004에서 시작됩니다.
@@ -214,6 +226,7 @@ uv run python solution/agents.py
 ```
 ============================================================
   아키텍처 심의위원회(ARB) — 전문가 에이전트 시작
+  분석 모드: 규칙 기반            ← API 키가 없으면 규칙 기반
 ============================================================
 
   [Security Review Agent] http://localhost:5001
@@ -225,46 +238,42 @@ uv run python solution/agents.py
 ============================================================
 ```
 
-### Step 4: 오케스트레이터로 심의 실행 (6분)
+### Step 4: v1 설계안 심의 실행 (5분)
 
 터미널 2를 열어 오케스트레이터를 실행합니다.
 
 ```bash
-# starter 코드 실행
-uv run python starter/orchestrator.py
-
-# 또는 완성된 solution 코드 실행
+# v1 설계안 심의 (기본값)
 uv run python solution/orchestrator.py
 ```
+
+**예상 결과**: 보안과 운영 에이전트가 **반려** 판정을 내리며 최종 **반려**가 됩니다.
+
+### Step 5: v2 수정안으로 재심의 (3분)
+
+v1에서 지적된 사항을 반영한 수정안(v2)으로 다시 심의합니다.
+
+```bash
+# v2 설계안 심의
+uv run python solution/orchestrator.py --proposal design_proposal_v2.json
+```
+
+**예상 결과**: 모든 에이전트가 **승인** 판정을 내리며 최종 **승인**이 됩니다.
+
+### Step 6: 결과 비교 및 토론 (3분)
+
+v1과 v2의 심의 결과를 비교하고 다음 질문에 대해 토론합니다:
+- v2에서 어떤 항목들이 개선되었습니까?
+- 에이전트 간 관점 충돌은 어떻게 해소되었습니까?
+- LLM 기반과 규칙 기반 분석의 장단점은 무엇입니까?
 
 ---
 
 ## 실행 결과 예시
 
+### v1 설계안 (반려)
+
 ```
-============================================================
-  아키텍처 심의위원회(ARB) 시작
-============================================================
-
-  설계 제안서를 로드합니다...
-  제안: 사내 레거시 시스템의 퍼블릭 클라우드 전환
-  예산: 12억원
-  기간: 18개월
-
---- 전문가 리뷰 수집 ---
-
-  [보안] 보안 리뷰 에이전트에게 리뷰를 요청합니다...
-    응답 수신 완료 (0.1초) - 판정: 반려
-
-  [성능] 성능 리뷰 에이전트에게 리뷰를 요청합니다...
-    응답 수신 완료 (0.1초) - 판정: 조건부 승인
-
-  [비용] 비용 리뷰 에이전트에게 리뷰를 요청합니다...
-    응답 수신 완료 (0.1초) - 판정: 조건부 승인
-
-  [운영] 운영 리뷰 에이전트에게 리뷰를 요청합니다...
-    응답 수신 완료 (0.1초) - 판정: 반려
-
 ============================================================
   아키텍처 심의위원회(ARB) 종합 보고서
 ============================================================
@@ -293,6 +302,29 @@ uv run python solution/orchestrator.py
 ============================================================
 ```
 
+### v2 수정안 (승인)
+
+```
+============================================================
+  아키텍처 심의위원회(ARB) 종합 보고서
+============================================================
+
+--- 2. 전문가별 판정 ---
+  보안 리뷰 에이전트: 승인
+  성능 리뷰 에이전트: 승인
+  비용 리뷰 에이전트: 승인
+  운영 리뷰 에이전트: 승인
+
+--- 5. 검토 통계 ---
+  총 발견 사항: 16건
+    높음: 0건  중간: 5건  낮음: 11건
+  관점 충돌: 0건
+
+============================================================
+  최종 판정: 승인
+============================================================
+```
+
 ---
 
 ## 평가 (Evaluation)
@@ -307,7 +339,7 @@ uv run python solution/orchestrator.py
 
 ```bash
 # 터미널 1: 에이전트 실행 (이미 실행 중이면 생략)
-uv run python solution/agents.py
+uv run python solution/agents_server.py
 
 # 터미널 2: 평가 실행
 uv run python solution/eval.py
@@ -321,35 +353,6 @@ uv run python solution/eval.py
 | 2. 의사결정 일관성 평가 | 판정(verdict) 로직이 규칙에 부합하는지 | 높은 심각도 2건 이상이면 반려, high_severity_count가 정확한지 |
 | 3. 에이전트 간 충돌 탐지 | 상충하는 관점이 올바르게 식별되는지 | 성능 대 비용 충돌, 보안 요구 대 운영 역량 충돌이 감지되는지 |
 
-### 기대 출력
-
-```
-============================================================
-  멀티에이전트 시스템 — 평가 시작
-============================================================
-
---- 1. 에이전트별 응답 평가 ---
-  [보안 리뷰 에이전트] 응답 수신 (0.05초)
-  [PASS] 응답 구조: agent, verdict, findings 필드 존재
-  [PASS] 도메인 분석: 데이터 주권 관련 finding 존재
-  [PASS] 도메인 분석: 암호화 관련 finding 존재
-  ...
-
---- 2. 의사결정 일관성 평가 ---
-  [PASS] 보안 에이전트: high_severity_count 정확
-  [PASS] 보안 에이전트: 반려 규칙 준수
-  ...
-
---- 3. 에이전트 간 충돌 탐지 평가 ---
-  [PASS] 성능 대 비용 충돌 감지됨
-  [PASS] 보안 요구 대 운영 역량 충돌 감지됨
-  ...
-
-============================================================
-  평가 완료: 전체 통과
-============================================================
-```
-
 ---
 
 ## A2A 프로토콜 구성 요소와 코드 매핑
@@ -359,7 +362,7 @@ uv run python solution/eval.py
 ### AgentCard — 에이전트 자기 설명
 
 ```python
-# agents.py에서 에이전트를 등록할 때 AgentCard를 생성합니다.
+# agents_server.py에서 에이전트를 등록할 때 AgentCard를 생성합니다.
 card = AgentCard(
     name="Security Review Agent",           # 에이전트 이름
     description="보안 관점에서 아키텍처를 리뷰합니다",  # 능력 설명
@@ -372,18 +375,30 @@ card = AgentCard(
 )
 ```
 
-### A2AServer — 에이전트 서버
+### BaseReviewAgent — 하이브리드 분석 베이스 클래스
 
 ```python
-# 에이전트는 A2AServer를 상속하고 handle_message를 구현합니다.
-class SecurityReviewAgent(A2AServer):
+# agents/base.py — LLM과 규칙 기반을 모두 지원하는 공통 베이스 클래스
+class BaseReviewAgent(A2AServer):
+    agent_name: str = ""
+    system_prompt: str = ""
+    model: str = "gpt-5-mini"
+
+    def __init__(self, agent_card):
+        super().__init__(agent_card)
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            self._openai = OpenAI(api_key=api_key)
+            self._use_llm = True    # LLM 모드
+        else:
+            self._use_llm = False   # 규칙 기반 모드
+
     def handle_message(self, message):
-        # message.content.text에서 설계안을 읽고
-        # 분석 결과를 Message로 반환합니다.
-        return Message(
-            role=MessageRole.AGENT,
-            content=TextContent(text=json.dumps(result)),
-        )
+        if self._use_llm:
+            result = self._analyze_with_llm(proposal_text)
+        else:
+            result = self.analyze_rule_based(proposal)
+        return Message(role=MessageRole.AGENT, content=TextContent(text=json.dumps(result)))
 ```
 
 ### A2AClient — 에이전트 호출
@@ -396,17 +411,6 @@ message = Message(
     content=TextContent(text=proposal_json),
 )
 response = client.send_message(message)  # 표준화된 응답
-```
-
-### Message — 표준 메시지 형식
-
-```python
-# 모든 에이전트가 동일한 Message 형식을 사용합니다.
-# 요청: role=USER, 응답: role=AGENT
-Message(
-    role=MessageRole.USER,              # 또는 MessageRole.AGENT
-    content=TextContent(text="..."),    # 텍스트 내용
-)
 ```
 
 ---
@@ -428,9 +432,17 @@ lab2-a2a-agents/
 ├── pyproject.toml                         ← 의존성 정의
 ├── .env.example                           ← 환경 변수 템플릿
 ├── data/
-│   └── design_proposal.json               ← 아키텍처 설계 제안서
+│   ├── design_proposal.json               ← v1 설계 제안서 (반려 예상)
+│   └── design_proposal_v2.json            ← v2 수정 제안서 (승인 예상)
 ├── solution/
-│   ├── agents.py                          ← 전문가 에이전트 4종 (완성본)
+│   ├── agents_server.py                   ← 에이전트 4종 일괄 실행 서버
+│   ├── agents/                            ← 에이전트 모듈 패키지
+│   │   ├── __init__.py                    ← 에이전트 클래스 export
+│   │   ├── base.py                        ← BaseReviewAgent (LLM/규칙 하이브리드)
+│   │   ├── security.py                    ← 보안 리뷰 에이전트
+│   │   ├── performance.py                 ← 성능 리뷰 에이전트
+│   │   ├── cost.py                        ← 비용 리뷰 에이전트
+│   │   └── ops.py                         ← 운영 리뷰 에이전트
 │   ├── orchestrator.py                    ← 오케스트레이터 (완성본)
 │   ├── eval.py                            ← 멀티에이전트 평가 스크립트
 │   └── traditional_multi_service.py       ← REST API 비교 예제
@@ -441,9 +453,47 @@ lab2-a2a-agents/
 
 ---
 
+## 강사 데모 시나리오
+
+### 데모 1: v1 반려 (5분)
+
+```bash
+# 터미널 1: 에이전트 서버 시작
+uv run python solution/agents_server.py
+
+# 터미널 2: v1 심의 실행
+uv run python solution/orchestrator.py
+```
+
+**포인트**: 보안(데이터 주권, 암호화)과 운영(팀 역량, 인력)에서 반려. 3건의 관점 충돌 발생.
+
+### 데모 2: v2 승인 (3분)
+
+```bash
+# 터미널 2: v2 심의 실행
+uv run python solution/orchestrator.py --proposal design_proposal_v2.json
+```
+
+**포인트**: v1의 지적 사항을 모두 반영하여 전원 승인. 실제 심의 사이클 체험.
+
+### 데모 3: LLM 모드 (선택, 3분)
+
+```bash
+# .env에 OPENAI_API_KEY 설정 후 에이전트 재시작
+uv run python solution/agents_server.py
+# "분석 모드: LLM"이 표시됨
+
+# 동일한 오케스트레이터 실행
+uv run python solution/orchestrator.py
+```
+
+**포인트**: 규칙 기반과 달리 LLM이 제안서를 자유롭게 분석. 다양한 제안서에 유연하게 대응.
+
+---
+
 ## 확장 아이디어
 
-- LLM을 연결하여 에이전트가 동적으로 분석하도록 개선
 - 에이전트 간 토론(Debate) 라운드를 추가하여 합의를 도출
 - 새로운 전문가 에이전트(법무, 데이터, UX 등)를 추가하여 심의 범위를 확장
 - AgentRegistry를 도입하여 에이전트 동적 탐색 구현
+- 비동기 처리로 4개 에이전트에게 동시 요청

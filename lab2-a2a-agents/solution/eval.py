@@ -9,7 +9,7 @@
   3. 에이전트 간 충돌 탐지 평가  — 상충하는 관점이 올바르게 식별되는지 검증
 
 사전 조건:
-  - agents.py가 실행 중이어야 합니다 (port 5001~5004)
+  - agents_server.py가 실행 중이어야 합니다 (port 5001~5004)
 
 실행:
   uv run python solution/eval.py
@@ -382,8 +382,8 @@ def main() -> None:
 
     if len(reviews) < 4:
         print(f"\n{Colors.RED}{Colors.BOLD}오류: {len(reviews)}/4 에이전트만 응답하였습니다.{Colors.RESET}")
-        print(f"{Colors.RED}agents.py를 먼저 실행하십시오:{Colors.RESET}")
-        print(f"{Colors.DIM}  uv run python solution/agents.py{Colors.RESET}\n")
+        print(f"{Colors.RED}agents_server.py를 먼저 실행하십시오:{Colors.RESET}")
+        print(f"{Colors.DIM}  uv run python solution/agents_server.py{Colors.RESET}\n")
         sys.exit(1)
 
     print(f"{Colors.GREEN}4개 에이전트 응답 수신 완료{Colors.RESET}")

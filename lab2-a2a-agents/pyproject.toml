@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "python-a2a>=0.5.0",
     "openai>=1.0",
+    "python-dotenv>=1.0",
     "flask>=3.0",
     "requests>=2.31",
 ]
