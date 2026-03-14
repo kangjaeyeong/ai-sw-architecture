@@ -13,6 +13,7 @@ LO8 서비스 분해도의 '게이트웨이 계층'에 해당합니다.
 포트: 8000
 """
 
+import asyncio
 import os
 
 import httpx
@@ -99,8 +100,7 @@ def generate_answer(message: str, context_docs: list[dict]) -> str:
                 "content": f"사내 문서:\n{context_text}\n\n질문: {message}",
             },
         ],
-        temperature=0.3,
-        max_tokens=500,
+        max_completion_tokens=16384,
     )
     return response.choices[0].message.content or "응답을 생성할 수 없습니다."
 
@@ -132,8 +132,8 @@ async def chat(request: ChatRequest) -> ChatResponse:
     context_docs = rag_result.get("results", [])
     sources = [doc["source"] for doc in context_docs]
 
-    # Step 3: LLM 응답 생성
-    answer = generate_answer(request.message, context_docs)
+    # Step 3: LLM 응답 생성 (동기 OpenAI 호출을 별도 스레드에서 실행)
+    answer = await asyncio.to_thread(generate_answer, request.message, context_docs)
     pipeline.append(PipelineStep(
         step="LLM 응답 생성",
         service="OpenAI gpt-5-mini",

@@ -504,8 +504,7 @@ JSON 형식으로 응답하십시오:
             judge_response = client.chat.completions.create(
                 model="gpt-5-mini",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=200,
-                temperature=0.0,
+                max_completion_tokens=16384,
             )
             judge_text = judge_response.choices[0].message.content or ""
 

@@ -433,8 +433,7 @@ class Generator:
                     {"role": "system", "content": "사내 AI 어시스턴트입니다. 격식체로 답변하십시오."},
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=300,
-                temperature=0.3,
+                max_completion_tokens=16384,
             )
             ctx.token_count = response.usage.total_tokens if response.usage else 0
             return response.choices[0].message.content or ""

@@ -59,7 +59,7 @@ def simple_llm_call(query: str) -> str:
         response = client.chat.completions.create(
             model="gpt-5",  # 항상 고성능 모델 사용 (비용 낭비)
             messages=[{"role": "user", "content": query}],
-            max_tokens=300,
+            max_completion_tokens=16384,
         )
         return response.choices[0].message.content or ""
     else:

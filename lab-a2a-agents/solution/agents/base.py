@@ -101,7 +101,7 @@ class BaseReviewAgent(A2AServer):
                     {"role": "system", "content": full_prompt},
                     {"role": "user", "content": f"아래 설계 제안서를 리뷰하십시오.\n\n{proposal_text}"},
                 ],
-                max_completion_tokens=1024,
+                max_completion_tokens=16384,
             )
 
             raw = response.choices[0].message.content.strip()
